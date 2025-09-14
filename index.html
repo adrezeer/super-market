@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>الكاشير</title>
+  <style>
+    body {
+      font-family: "Cairo", sans-serif;
+      background: #f4f6f9;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background: #2196F3;
+      color: white;
+      padding: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    header img {
+      height: 80px;
+      width: 80px;
+      border-radius: 12px;
+      object-fit: cover;
+      background: white;
+      border: 3px solid white;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 30px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    input {
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      width: 60%;
+      font-size: 16px;
+    }
+
+    .btn {
+      padding: 10px 15px;
+      margin: 10px 5px;
+      background: #2196F3;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+      font-size: 16px;
+    }
+
+    .btn:hover {
+      background: #1976D2;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+      text-align: center;
+    }
+
+    th {
+      background: #2196F3;
+      color: white;
+    }
+
+    tfoot td {
+      font-weight: bold;
+      background: #f1f1f1;
+    }
+
+    .delete {
+      background: #e53935;
+      border: none;
+      padding: 6px 12px;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .delete:hover {
+      background: #c62828;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <img id="logo" src="" alt="شعار">
+  <h1 id="marketTitle">السوبر ماركت</h1>
+</header>
+
+<div class="container">
+  <h2>💳 الكاشير</h2>
+  <input type="text" id="barcodeInput" placeholder="أدخل الباركود" onkeypress="if(event.key==='Enter'){addByBarcode()}">
+  <button class="btn" onclick="addByBarcode()">إضافة</button>
+  <button class="btn" style="background:#e53935" onclick="clearInvoice()">مسح الفاتورة</button>
+  <button class="btn" style="background:#4CAF50" onclick="printInvoice()">🖨 طباعة الفاتورة</button>
+    <a href="worker.html"><button class="btn nav-btn">👨‍💼 إضافة عامل</button></a>
+    <a href="item.html"><button class="btn nav-btn">📦 إضافة منتج</button></a>
+    <a href="settings.html"><button class="btn nav-btn">sitings</button></a>
+  <table>
+    <thead>
+      <tr>
+        <th>الباركود</th>
+        <th>اسم المنتج</th>
+        <th>السعر</th>
+        <th>إجراء</th>
+      </tr>
+    </thead>
+    <tbody id="invoiceList">
+      <!-- العناصر هتظهر هنا -->
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="2">الإجمالي</td>
+        <td id="totalPrice">0 ج.م</td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<script>
+  let invoice = [];
+
+  // تحميل اسم السوق واللوجو
+  window.onload = () => {
+    let name = localStorage.getItem("marketName") || "السوبر ماركت";
+    document.getElementById("marketTitle").textContent = name;
+
+    let logo = localStorage.getItem("marketLogo");
+    if (logo) {
+      document.getElementById("logo").src = logo;
+    } else {
+      document.getElementById("logo").style.display = "none";
+    }
+  };
+
+  // إضافة منتج بالباركود
+  function addByBarcode() {
+    let barcode = document.getElementById("barcodeInput").value.trim();
+    if (!barcode) return;
+
+    let items = JSON.parse(localStorage.getItem("items")) || [];
+    let item = items.find(i => i.barcode === barcode);
+
+    if (item) {
+      invoice.push(item);
+      renderInvoice();
+    } else {
+      alert("❌ المنتج غير موجود");
+    }
+
+    document.getElementById("barcodeInput").value = "";
+  }
+
+  // رسم الفاتورة
+  function renderInvoice() {
+    let table = document.getElementById("invoiceList");
+    table.innerHTML = "";
+    let total = 0;
+
+    invoice.forEach((item, index) => {
+      total += parseFloat(item.price);
+      let row = `
+        <tr>
+          <td>${item.barcode}</td>
+          <td>${item.name}</td>
+          <td>${item.price} ج.م</td>
+          <td><button class="delete" onclick="deleteFromInvoice(${index})">❌ حذف</button></td>
+        </tr>
+      `;
+      table.innerHTML += row;
+    });
+
+    document.getElementById("totalPrice").textContent = total.toFixed(2) + " ج.م";
+  }
+
+  // حذف منتج من الفاتورة
+  function deleteFromInvoice(index) {
+    invoice.splice(index, 1);
+    renderInvoice();
+  }
+
+  // مسح الفاتورة بالكامل
+  function clearInvoice() {
+    if (confirm("هل أنت متأكد من مسح الفاتورة؟")) {
+      invoice = [];
+      renderInvoice();
+    }
+  }
+
+  // طباعة الفاتورة
+  function printInvoice() {
+    let printWindow = window.open("", "", "width=600,height=700");
+    printWindow.document.write("<html><head><title>فاتورة</title></head><body>");
+    printWindow.document.write("<h2 style='text-align:center'>" + document.getElementById("marketTitle").textContent + "</h2>");
+    printWindow.document.write("<table border='1' style='width:100%; border-collapse:collapse; text-align:center;'>");
+    printWindow.document.write("<tr><th>الباركود</th><th>اسم المنتج</th><th>السعر</th></tr>");
+    invoice.forEach(item => {
+      printWindow.document.write(`<tr><td>${item.barcode}</td><td>${item.name}</td><td>${item.price} ج.م</td></tr>`);
+    });
+    printWindow.document.write("</table>");
+    printWindow.document.write("<h3 style='text-align:center'>الإجمالي: " + document.getElementById("totalPrice").textContent + "</h3>");
+    printWindow.document.write("</body></html>");
+    printWindow.document.close();
+    printWindow.print();
+  }
+</script>
+
+</body>
+</html>

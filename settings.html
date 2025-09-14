@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>إعدادات السوبر ماركت</title>
+  <style>
+    body {
+      font-family: "Cairo", Arial, sans-serif;
+      direction: rtl;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 400px;
+      text-align: center;
+    }
+    h1 {
+      color: #2196F3;
+      margin-bottom: 20px;
+    }
+    input {
+      width: 90%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    .btn {
+      background: #2196F3;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .btn:hover {
+      background: #1976D2;
+    }
+    img {
+      max-width: 100px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚙️ إعدادات السوبر ماركت</h1>
+    <input type="text" id="marketName" placeholder="اسم السوبر ماركت">
+    <input type="file" id="logoInput" accept="image/*">
+    <br>
+    <button class="btn" onclick="saveSettings()">💾 حفظ الإعدادات</button>
+    <div id="preview"></div>
+  </div>
+
+  <script>
+    function saveSettings() {
+      let name = document.getElementById("marketName").value;
+      let file = document.getElementById("logoInput").files[0];
+
+      if (!name && !file) {
+        alert("من فضلك أدخل الاسم أو اختر لوجو");
+        return;
+      }
+
+      localStorage.setItem("marketName", name);
+
+      if (file) {
+        let reader = new FileReader();
+        reader.onload = function(e) {
+          localStorage.setItem("marketLogo", e.target.result);
+          alert("✅ تم حفظ الإعدادات!");
+        };
+        reader.readAsDataURL(file);
+      } else {
+        alert("✅ تم حفظ الإعدادات!");
+      }
+    }
+
+    // عرض الاسم و اللوجو الحاليين
+    window.onload = () => {
+      document.getElementById("marketName").value = localStorage.getItem("marketName") || "";
+      let logo = localStorage.getItem("marketLogo");
+      if (logo) {
+        document.getElementById("preview").innerHTML = `<img src="${logo}" alt="اللوجو الحالي">`;
+      }
+    };
+    function searchBarcode(barcode) {
+  let items = JSON.parse(localStorage.getItem("items")) || [];
+  let item = items.find(i => i.barcode === barcode);
+
+  if (item) {
+    // ضيفه في الفاتورة
+  } else {
+    alert("❌ المنتج غير موجود");
+  }
+}
+
+  </script>
+  <div class="small-row">
+      <a href="index.html"><button class="btn back">⬅️ رجوع</button></a>
+    </div>
+</body>
+</html>
