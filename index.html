@@ -1,0 +1,2431 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام الكاشير المطور</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- QuaggaJS for barcode scanning -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+  <style>
+    :root {
+      /* Color System */
+      --primary: #2196F3;
+      --primary-dark: #1976D2;
+      --primary-light: #E3F2FD;
+      --secondary: #FF9800;
+      --danger: #e53935;
+      --danger-dark: #c62828;
+      --success: #4CAF50;
+      --success-dark: #388E3C;
+      --warning: #FF9800;
+      
+      /* Neutral Colors */
+      --white: #ffffff;
+      --gray-50: #f8fafc;
+      --gray-100: #f1f5f9;
+      --gray-200: #e2e8f0;
+      --gray-300: #cbd5e1;
+      --gray-400: #94a3b8;
+      --gray-500: #64748b;
+      --gray-700: #334155;
+      --gray-900: #0f172a;
+      
+      /* Special Colors */
+      --invoice-bg: #fafbfc;
+      --total-bg: #f0f9ff;
+      --accent: #8b5cf6;
+      
+      /* Typography */
+      --font-size-xs: 0.75rem;
+      --font-size-sm: 0.875rem;
+      --font-size-base: 1rem;
+      --font-size-lg: 1.125rem;
+      --font-size-xl: 1.25rem;
+      --font-size-2xl: 1.5rem;
+      --font-size-3xl: 1.875rem;
+      --font-size-4xl: 2.25rem;
+      
+      --font-weight-normal: 400;
+      --font-weight-medium: 600;
+      --font-weight-bold: 700;
+      
+      /* Spacing */
+      --space-1: 0.25rem;
+      --space-2: 0.5rem;
+      --space-3: 0.75rem;
+      --space-4: 1rem;
+      --space-5: 1.25rem;
+      --space-6: 1.5rem;
+      --space-8: 2rem;
+      --space-10: 2.5rem;
+      --space-12: 3rem;
+      --space-16: 4rem;
+      
+      /* Border Radius */
+      --radius-sm: 0.375rem;
+      --radius: 0.5rem;
+      --radius-md: 0.75rem;
+      --radius-lg: 1rem;
+      --radius-xl: 1.5rem;
+      --radius-full: 9999px;
+      
+      /* Shadows */
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      
+      /* Transitions */
+      --transition-fast: 150ms ease-in-out;
+      --transition-base: 250ms ease-in-out;
+      --transition-slow: 400ms ease-in-out;
+      
+      /* Layout */
+      --container-sm: 640px;
+      --container-md: 768px;
+      --container-lg: 1024px;
+      --container-xl: 1280px;
+    }
+    
+    /* Reset and Base Styles */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+    }
+    
+    body {
+      font-family: "Cairo", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.6;
+      color: var(--gray-700);
+      background: linear-gradient(135deg, var(--gray-50) 0%, var(--primary-light) 100%);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Login Screen Styles */
+    .login-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(20px);
+    }
+
+    .login-overlay::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+      background-size: 50px 50px;
+      animation: float 20s infinite linear;
+      pointer-events: none;
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0px) translateX(0px); }
+      50% { transform: translateY(-20px) translateX(10px); }
+      100% { transform: translateY(0px) translateX(0px); }
+    }
+
+    .login-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 420px;
+      padding: 20px;
+    }
+
+    .login-box {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      padding: 40px 35px;
+      border-radius: 25px;
+      box-shadow: 
+        0 25px 50px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+      text-align: center;
+      animation: slideUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #f5576c);
+      background-size: 200% 200%;
+      animation: gradientShift 3s ease infinite;
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .login-title {
+      margin-bottom: 30px;
+      color: #2c3e50;
+      font-size: 28px;
+      font-weight: 700;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .current-employee {
+      background: linear-gradient(135deg, var(--success) 0%, var(--success-dark) 100%);
+      color: white;
+      padding: var(--space-3) var(--space-4);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-6);
+      font-weight: var(--font-weight-medium);
+      box-shadow: var(--shadow-md);
+    }
+
+    .login-input-group {
+      position: relative;
+      margin-bottom: 25px;
+    }
+
+    .login-input {
+      width: 100%;
+      padding: 18px 20px;
+      border: 2px solid #e1e8ed;
+      border-radius: 15px;
+      font-size: 16px;
+      font-family: "Cairo", sans-serif;
+      transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      background: rgba(255, 255, 255, 0.9);
+      color: #2c3e50;
+    }
+
+    .login-input:focus {
+      border-color: #667eea;
+      outline: none;
+      box-shadow: 
+        0 0 0 4px rgba(102, 126, 234, 0.1),
+        0 8px 25px rgba(102, 126, 234, 0.15);
+      background: rgba(255, 255, 255, 1);
+      transform: translateY(-2px);
+    }
+
+    .login-input::placeholder {
+      color: #95a5a6;
+      font-weight: 400;
+    }
+
+    .login-btn, .logout-btn {
+      width: 100%;
+      padding: 18px 20px;
+      margin-top: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      color: white;
+      font-size: 18px;
+      font-weight: 600;
+      font-family: "Cairo", sans-serif;
+      border-radius: 15px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .logout-btn {
+      background: linear-gradient(135deg, var(--danger) 0%, var(--danger-dark) 100%);
+      box-shadow: 0 4px 15px rgba(229, 57, 53, 0.4);
+      width: auto;
+      padding: 12px 20px;
+      font-size: 16px;
+      margin: 0;
+    }
+
+    .login-btn::before, .logout-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .login-btn:hover, .logout-btn:hover {
+      transform: translateY(-3px);
+    }
+
+    .login-btn:hover {
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+      background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+    }
+
+    .logout-btn:hover {
+      box-shadow: 0 8px 25px rgba(229, 57, 53, 0.5);
+      background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
+    }
+
+    .login-btn:hover::before, .logout-btn:hover::before {
+      left: 100%;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(50px) scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .login-error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #ef4444;
+      padding: var(--space-3);
+      border-radius: var(--radius);
+      margin-bottom: var(--space-4);
+      font-size: var(--font-size-sm);
+      animation: shake 0.5s ease-in-out;
+    }
+
+    @keyframes shake {
+      0%, 20%, 40%, 60%, 80%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    }
+
+    /* Hide main content when not logged in */
+    .main-system {
+      display: none;
+    }
+
+    .main-system.logged-in {
+      display: block;
+    }
+    
+    /* Header Styles */
+    .header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: var(--white);
+      padding: var(--space-6) var(--space-4);
+      box-shadow: var(--shadow-lg);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 100%;
+      height: 100%;
+      background: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.05' fill-rule='evenodd'%3E%3Cpath d='M20 20c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z'/%3E%3C/g%3E%3C/svg%3E") repeat;
+      opacity: 0.1;
+      z-index: 1;
+    }
+    
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      position: relative;
+      z-index: 2;
+      max-width: var(--container-xl);
+      margin: 0 auto;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+    }
+    
+    .header-logo {
+      width: 60px;
+      height: 60px;
+      border-radius: var(--radius-lg);
+      object-fit: cover;
+      background: var(--white);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      box-shadow: var(--shadow-md);
+      transition: transform var(--transition-base);
+    }
+    
+    .header-logo:hover {
+      transform: scale(1.05);
+    }
+    
+    .header-title {
+      font-size: var(--font-size-3xl);
+      font-weight: var(--font-weight-bold);
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+    }
+    
+    /* Container */
+    .container {
+      max-width: var(--container-xl);
+      margin: var(--space-6) auto;
+      padding: 0 var(--space-4);
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      gap: var(--space-6);
+    }
+    
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-6);
+    }
+    
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+    
+    /* Card Component */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+      transition: box-shadow var(--transition-base);
+    }
+    
+    .card:hover {
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .card-header {
+      padding: var(--space-6);
+      background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+      border-bottom: 1px solid var(--gray-200);
+    }
+    
+    .card-title {
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-medium);
+      color: var(--gray-900);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    
+    .card-body {
+      padding: var(--space-6);
+    }
+    
+    /* Barcode Input Section */
+    .barcode-section {
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--white) 100%);
+      border: 2px solid var(--primary);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+    }
+    
+    .input-group {
+      display: flex;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+    }
+
+    .scanner-controls {
+      display: flex;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+      flex-wrap: wrap;
+    }
+    
+    .barcode-input {
+      flex: 1;
+      padding: var(--space-4);
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius);
+      font-size: var(--font-size-lg);
+      font-family: 'Courier New', monospace;
+      transition: all var(--transition-fast);
+      background: var(--white);
+    }
+    
+    .barcode-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+      transform: translateY(-1px);
+    }
+    
+    .barcode-input::placeholder {
+      color: var(--gray-400);
+      font-family: "Cairo", sans-serif;
+    }
+
+    /* Scanner Modal */
+    .scanner-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+
+    .scanner-container {
+      background: white;
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      max-width: 500px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .scanner-video {
+      width: 100%;
+      max-width: 400px;
+      height: 300px;
+      border-radius: var(--radius);
+      margin-bottom: var(--space-4);
+      background: #000;
+    }
+
+    .scanner-status {
+      margin-bottom: var(--space-4);
+      padding: var(--space-3);
+      border-radius: var(--radius);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .scanner-status.scanning {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+    }
+
+    .scanner-status.success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .scanner-status.error {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    /* Worker Management Modal */
+    .worker-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1500;
+      padding: var(--space-4);
+    }
+
+    .worker-modal-content {
+      background: white;
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-xl);
+    }
+
+    .worker-modal-header {
+      padding: var(--space-6);
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .worker-modal-body {
+      padding: var(--space-6);
+    }
+
+    .worker-form {
+      background: var(--gray-50);
+      padding: var(--space-4);
+      border-radius: var(--radius);
+      margin-bottom: var(--space-6);
+    }
+
+    .worker-form-group {
+      margin-bottom: var(--space-4);
+    }
+
+    .worker-form-group label {
+      display: block;
+      margin-bottom: var(--space-2);
+      font-weight: var(--font-weight-medium);
+      color: var(--gray-700);
+    }
+
+    .worker-form-group input {
+      width: 100%;
+      padding: var(--space-3);
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius);
+      font-size: var(--font-size-base);
+      transition: border-color var(--transition-fast);
+    }
+
+    .worker-form-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+    }
+
+    .workers-list {
+      background: white;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--gray-200);
+    }
+
+    .worker-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-4);
+      border-bottom: 1px solid var(--gray-100);
+      transition: background-color var(--transition-fast);
+    }
+
+    .worker-item:last-child {
+      border-bottom: none;
+    }
+
+    .worker-item:hover {
+      background-color: var(--gray-50);
+    }
+
+    .worker-info h4 {
+      margin: 0;
+      font-weight: var(--font-weight-medium);
+      color: var(--gray-900);
+    }
+
+    .worker-info p {
+      margin: var(--space-1) 0 0 0;
+      font-size: var(--font-size-sm);
+      color: var(--gray-500);
+    }
+
+    .worker-actions {
+      display: flex;
+      gap: var(--space-2);
+    }
+    
+    /* Button System */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      padding: var(--space-3) var(--space-5);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-medium);
+      font-family: inherit;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      text-decoration: none;
+      position: relative;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left var(--transition-base);
+    }
+    
+    .btn:hover::before {
+      left: 100%;
+    }
+    
+    .btn:active {
+      transform: translateY(1px);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: var(--white);
+      box-shadow: var(--shadow);
+    }
+    
+    .btn-primary:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+    
+    .btn-danger {
+      background: linear-gradient(135deg, var(--danger) 0%, var(--danger-dark) 100%);
+      color: var(--white);
+    }
+    
+    .btn-success {
+      background: linear-gradient(135deg, var(--success) 0%, var(--success-dark) 100%);
+      color: var(--white);
+    }
+    
+    .btn-secondary {
+      background: var(--gray-100);
+      color: var(--gray-700);
+      border: 1px solid var(--gray-200);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--gray-200);
+      border-color: var(--gray-300);
+    }
+    
+    .btn-sm {
+      padding: var(--space-2) var(--space-3);
+      font-size: var(--font-size-sm);
+    }
+    
+    .btn-lg {
+      padding: var(--space-4) var(--space-6);
+      font-size: var(--font-size-lg);
+    }
+
+    .btn-warning {
+      background: linear-gradient(135deg, var(--warning) 0%, #f57c00 100%);
+      color: var(--white);
+    }
+    
+    /* Action Buttons Grid */
+    .action-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+    }
+    
+    .action-buttons .btn {
+      justify-content: center;
+    }
+    
+    /* Navigation Buttons */
+    .nav-buttons {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: var(--space-3);
+    }
+    
+    .nav-btn {
+      background: linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%);
+      color: var(--white);
+      padding: var(--space-3) var(--space-4);
+      font-size: var(--font-size-sm);
+    }
+    
+    /* Invoice Table */
+    .invoice-container {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .table-container {
+      overflow-x: auto;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--font-size-sm);
+    }
+    
+    .table th {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: var(--white);
+      padding: var(--space-4);
+      text-align: center;
+      font-weight: var(--font-weight-medium);
+      font-size: var(--font-size-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    
+    .table td {
+      padding: var(--space-4);
+      text-align: center;
+      border-bottom: 1px solid var(--gray-100);
+      transition: background-color var(--transition-fast);
+    }
+    
+    .table tbody tr:hover td {
+      background-color: var(--primary-light);
+    }
+    
+    .table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    
+    /* Invoice Total */
+    .invoice-total {
+      background: linear-gradient(135deg, var(--total-bg) 0%, var(--primary-light) 100%);
+      padding: var(--space-6);
+      border-top: 2px solid var(--primary);
+    }
+    
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-bold);
+      color: var(--primary-dark);
+    }
+    
+    .total-amount {
+      font-size: var(--font-size-2xl);
+      color: var(--success);
+    }
+    
+    /* Invoice Stats */
+    .invoice-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-4);
+      margin-bottom: var(--space-4);
+    }
+    
+    .stat-card {
+      background: linear-gradient(135deg, var(--white) 0%, var(--gray-50) 100%);
+      padding: var(--space-4);
+      border-radius: var(--radius);
+      border: 1px solid var(--gray-200);
+      text-align: center;
+    }
+    
+    .stat-number {
+      font-size: var(--font-size-2xl);
+      font-weight: var(--font-weight-bold);
+      color: var(--primary);
+    }
+    
+    .stat-label {
+      font-size: var(--font-size-sm);
+      color: var(--gray-500);
+      margin-top: var(--space-1);
+    }
+    
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: var(--space-12);
+      color: var(--gray-500);
+    }
+    
+    .empty-state-icon {
+      font-size: var(--font-size-3xl);
+      margin-bottom: var(--space-4);
+      opacity: 0.5;
+    }
+
+    .empty-workers {
+      text-align: center;
+      padding: var(--space-8);
+      color: var(--gray-500);
+    }
+    
+    /* Animations */
+    @keyframes slideInRight {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    
+    .invoice-item {
+      animation: slideInRight var(--transition-base) ease-out;
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.7;
+      }
+    }
+    
+    .processing {
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes scan-line {
+      0% { top: 0; }
+      100% { top: 100%; }
+    }
+
+    .scanner-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--success);
+      animation: scan-line 2s infinite linear;
+      box-shadow: 0 0 10px var(--success);
+    }
+    
+    /* Success/Error Messages */
+    .message {
+      padding: var(--space-4);
+      border-radius: var(--radius);
+      margin-bottom: var(--space-4);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-weight: var(--font-weight-medium);
+    }
+    
+    .message-success {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #10b981;
+    }
+    
+    .message-error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #ef4444;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: var(--font-size-2xl);
+      cursor: pointer;
+      color: white;
+      padding: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color var(--transition-fast);
+    }
+
+    .close-btn:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Print Styles */
+    @media print {
+      body {
+        background: white;
+      }
+      
+      .header,
+      .sidebar,
+      .action-buttons,
+      .nav-buttons,
+      .login-overlay,
+      .scanner-modal,
+      .worker-modal {
+        display: none !important;
+      }
+      
+      .container {
+        grid-template-columns: 1fr;
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      
+      .card {
+        box-shadow: none;
+        border: 1px solid var(--gray-300);
+      }
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 1024px) {
+      .container {
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+      }
+      
+      .sidebar {
+        order: -1;
+      }
+      
+      .nav-buttons {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .scanner-controls {
+        justify-content: center;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .header {
+        padding: var(--space-4);
+      }
+      
+      .header-content {
+        flex-direction: column;
+        gap: var(--space-2);
+      }
+
+      .header-left {
+        flex-direction: column;
+        gap: var(--space-2);
+      }
+      
+      .header-logo {
+        width: 50px;
+        height: 50px;
+      }
+      
+      .header-title {
+        font-size: var(--font-size-2xl);
+      }
+      
+      .container {
+        margin: var(--space-4) auto;
+        padding: 0 var(--space-3);
+      }
+      
+      .input-group {
+        flex-direction: column;
+      }
+      
+      .action-buttons {
+        grid-template-columns: 1fr;
+      }
+      
+      .nav-buttons {
+        grid-template-columns: 1fr;
+      }
+      
+      .invoice-stats {
+        grid-template-columns: 1fr;
+      }
+      
+      .card-header,
+      .card-body {
+        padding: var(--space-4);
+      }
+      
+      .table th,
+      .table td {
+        padding: var(--space-2);
+        font-size: var(--font-size-xs);
+      }
+
+      .login-box {
+        margin: 15px;
+        padding: 30px 25px;
+      }
+
+      .scanner-controls {
+        flex-direction: column;
+      }
+
+      .scanner-container {
+        width: 95%;
+        padding: var(--space-4);
+      }
+
+      .worker-modal {
+        padding: var(--space-2);
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .header-title {
+        font-size: var(--font-size-xl);
+      }
+      
+      .total-row {
+        flex-direction: column;
+        gap: var(--space-2);
+      }
+      
+      .btn {
+        padding: var(--space-2) var(--space-3);
+        font-size: var(--font-size-sm);
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="loginOverlay" class="login-overlay">
+  <div class="login-container">
+    <div class="login-box">
+      <h2 class="login-title">🔐 تسجيل دخول الموظف</h2>
+      
+      <div id="loginError" class="login-error" style="display: none;">
+        ❌ اسم المستخدم أو كلمة السر غير صحيحة
+      </div>
+      
+      <div class="login-input-group">
+        <input 
+          type="text" 
+          id="employeeName" 
+          class="login-input" 
+          placeholder="اسم الموظف"
+          autocomplete="username"
+        >
+      </div>
+      
+      <div class="login-input-group">
+        <input 
+          type="password" 
+          id="employeePassword" 
+          class="login-input" 
+          placeholder="كلمة السر"
+          autocomplete="current-password"
+        >
+      </div>
+      
+      <button class="login-btn" onclick="authenticateEmployee()">
+        🚀 دخول
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Barcode Scanner Modal -->
+<div id="scannerModal" class="scanner-modal">
+  <div class="scanner-container">
+    <h3 style="margin-bottom: var(--space-4);">📱 ماسح الباركود</h3>
+    
+    <div style="position: relative; display: inline-block;">
+      <div id="scanner" class="scanner-video"></div>
+      <div class="scanner-line" id="scannerLine" style="display: none;"></div>
+    </div>
+    
+    <div id="scannerStatus" class="scanner-status scanning">
+      🔍 جاري البحث عن الباركود...
+    </div>
+    
+    <div style="display: flex; gap: var(--space-3); justify-content: center;">
+      <button class="btn btn-danger" onclick="stopScanner()">
+        ❌ إغلاق
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Worker Management Modal -->
+<div id="workerModal" class="worker-modal">
+  <div class="worker-modal-content">
+    <div class="worker-modal-header">
+      <h3>👨‍💼 إدارة العمال</h3>
+      <button class="close-btn" onclick="closeWorkerModal()">×</button>
+    </div>
+    
+    <div class="worker-modal-body">
+      <!-- Add Worker Form -->
+      <div class="worker-form">
+        <h4 style="margin-bottom: var(--space-4); color: var(--gray-700);">➕ إضافة موظف جديد</h4>
+        
+        <div class="worker-form-group">
+          <label for="workerName">اسم الموظف</label>
+          <input type="text" id="workerName" placeholder="أدخل اسم الموظف">
+        </div>
+        
+        <div class="worker-form-group">
+          <label for="workerPassword">كلمة السر</label>
+          <input type="password" id="workerPassword" placeholder="أدخل كلمة السر">
+        </div>
+        
+        <button class="btn btn-primary" onclick="addWorker()">
+          ➕ إضافة موظف
+        </button>
+      </div>
+
+      <!-- Workers List -->
+      <div>
+        <h4 style="margin-bottom: var(--space-4); color: var(--gray-700);">📋 قائمة الموظفين</h4>
+        <div id="workersList" class="workers-list">
+          <!-- Workers will be loaded here -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main System (Hidden until logged in) -->
+<div id="mainSystem" class="main-system">
+
+<header class="header">
+  <div class="header-content">
+    <div class="header-left">
+      <img id="logo" class="header-logo" src="" alt="شعار" style="display: none;">
+      <h1 id="marketTitle" class="header-title">
+        <span>💳</span>
+        نظام الكاشير المطور
+      </h1>
+    </div>
+    <div class="header-right">
+      <div id="currentEmployee" class="current-employee"></div>
+      <button class="logout-btn" onclick="logout()">
+        🚪 تسجيل خروج
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <div class="main-content">
+    <!-- Barcode Input Section -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">
+          <span>🔍</span>
+          إدخال المنتجات
+        </h2>
+      </div>
+      <div class="card-body">
+        <div class="barcode-section">
+          <div class="input-group">
+            <input 
+              type="text" 
+              id="barcodeInput" 
+              class="barcode-input" 
+              placeholder="امسح أو أدخل الباركود هنا"
+              autocomplete="off"
+              autofocus
+            >
+            <button class="btn btn-primary btn-lg" onclick="addByBarcode()">
+              <span>➕</span>
+              إضافة
+            </button>
+          </div>
+
+          <div class="scanner-controls">
+            <button class="btn btn-success" onclick="startScanner()">
+              <span>📱</span>
+              مسح بالكاميرا
+            </button>
+          </div>
+          
+          <div class="action-buttons">
+            <button class="btn btn-danger" onclick="clearInvoice()">
+              <span>🗑️</span>
+              مسح الفاتورة
+            </button>
+            <button class="btn btn-success" onclick="printInvoice()">
+              <span>🖨️</span>
+              طباعة الفاتورة
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Invoice Table -->
+    <div class="invoice-container">
+      <div class="table-container">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>الباركود</th>
+              <th>اسم المنتج</th>
+              <th>السعر</th>
+              <th>الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="invoiceList">
+            <tr class="empty-state">
+              <td colspan="4">
+                <div class="empty-state-icon">🛒</div>
+                <div>الفاتورة فارغة</div>
+                <div style="font-size: var(--font-size-sm); margin-top: var(--space-2);">ابدأ بمسح الباركود لإضافة المنتجات</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="invoice-total">
+        <div class="total-row">
+          <span>إجمالي الفاتورة</span>
+          <span id="totalPrice" class="total-amount">0.00 ج.م</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <!-- Invoice Statistics -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <span>📊</span>
+          إحصائيات الفاتورة
+        </h3>
+      </div>
+      <div class="card-body">
+        <div class="invoice-stats">
+          <div class="stat-card">
+            <div id="itemCount" class="stat-number">0</div>
+            <div class="stat-label">عدد المنتجات</div>
+          </div>
+          <div class="stat-card">
+            <div id="totalAmount" class="stat-number">0.00</div>
+            <div class="stat-label">المبلغ الإجمالي</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <span>🚀</span>
+          أدوات سريعة
+        </h3>
+      </div>
+      <div class="card-body">
+        <div class="nav-buttons">
+          <button class="btn nav-btn" onclick="openWorkerModal()">
+            <span>👨‍💼</span>
+            إدارة العمال
+          </button>
+          <button class="btn nav-btn" onclick="manageProducts()">
+            <span>📦</span>
+            إدارة المنتجات
+          </button>
+          <button class="btn nav-btn" onclick="showSettings()">
+            <span>⚙️</span>
+            الإعدادات
+          </button>
+          <button class="btn btn-secondary" onclick="goHome()">
+            <span>🏠</span>
+            الصفحة الرئيسية
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+  class BarcodeScanner {
+    constructor() {
+      this.isScanning = false;
+      this.stream = null;
+    }
+
+    async startScanning() {
+      if (this.isScanning) return;
+      
+      const modal = document.getElementById('scannerModal');
+      const scanner = document.getElementById('scanner');
+      const status = document.getElementById('scannerStatus');
+      const scanLine = document.getElementById('scannerLine');
+      
+      try {
+        modal.style.display = 'flex';
+        status.textContent = '🔍 جاري تشغيل الكاميرا...';
+        status.className = 'scanner-status scanning';
+        
+        // Get camera stream
+        this.stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment', // Use back camera if available
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          }
+        });
+
+        // Create video element
+        const video = document.createElement('video');
+        video.style.width = '100%';
+        video.style.height = '100%';
+        video.style.objectFit = 'cover';
+        video.autoplay = true;
+        video.muted = true;
+        video.playsInline = true;
+
+        scanner.innerHTML = '';
+        scanner.appendChild(video);
+        video.srcObject = this.stream;
+
+        await video.play();
+        
+        this.isScanning = true;
+        status.textContent = '📱 وجّه الكاميرا نحو الباركود';
+        scanLine.style.display = 'block';
+
+        // Initialize QuaggaJS
+        Quagga.init({
+          inputStream: {
+            name: "Live",
+            type: "LiveStream",
+            target: video,
+            constraints: {
+              width: 640,
+              height: 480,
+              facingMode: "environment"
+            }
+          },
+          decoder: {
+            readers: [
+              "code_128_reader",
+              "ean_reader",
+              "ean_8_reader",
+              "code_39_reader",
+              "code_39_vin_reader",
+              "codabar_reader",
+              "upc_reader",
+              "upc_e_reader",
+              "i2of5_reader"
+            ]
+          },
+          locate: true,
+          locator: {
+            halfSample: true,
+            patchSize: "medium",
+            debug: {
+              showCanvas: false,
+              showPatches: false,
+              showFoundPatches: false,
+              showSkeleton: false,
+              showLabels: false,
+              showPatchLabels: false,
+              showRemainingPatchLabels: false,
+              boxFromPatches: {
+                showTransformed: false,
+                showTransformedBox: false,
+                showBB: false
+              }
+            }
+          }
+        }, (err) => {
+          if (err) {
+            console.error('QuaggaJS init error:', err);
+            status.textContent = '❌ خطأ في تشغيل الماسح';
+            status.className = 'scanner-status error';
+            return;
+          }
+          
+          Quagga.start();
+          
+          // Listen for barcode detection
+          Quagga.onDetected((result) => {
+            const code = result.codeResult.code;
+            if (code && code.length > 3) {
+              this.onBarcodeDetected(code);
+            }
+          });
+        });
+
+      } catch (error) {
+        console.error('Camera access error:', error);
+        status.textContent = '❌ لا يمكن الوصول للكاميرا';
+        status.className = 'scanner-status error';
+        
+        // Fallback: show manual input option
+        setTimeout(() => {
+          modal.style.display = 'none';
+          document.getElementById('barcodeInput').focus();
+        }, 2000);
+      }
+    }
+
+    onBarcodeDetected(barcode) {
+      if (!this.isScanning) return;
+      
+      const status = document.getElementById('scannerStatus');
+      status.textContent = `✅ تم العثور على: ${barcode}`;
+      status.className = 'scanner-status success';
+      
+      // Add to invoice
+      document.getElementById('barcodeInput').value = barcode;
+      setTimeout(() => {
+        this.stopScanning();
+        if (window.cashierSystem) {
+          cashierSystem.addByBarcode();
+        }
+      }, 1000);
+    }
+
+    stopScanning() {
+      if (!this.isScanning) return;
+      
+      this.isScanning = false;
+      
+      // Stop QuaggaJS
+      if (typeof Quagga !== 'undefined') {
+        Quagga.stop();
+      }
+      
+      // Stop camera stream
+      if (this.stream) {
+        this.stream.getTracks().forEach(track => track.stop());
+        this.stream = null;
+      }
+      
+      // Hide modal
+      document.getElementById('scannerModal').style.display = 'none';
+      document.getElementById('scannerLine').style.display = 'none';
+      
+      // Focus back to input
+      document.getElementById('barcodeInput').focus();
+    }
+  }
+
+  class WorkerManager {
+    constructor() {
+      this.workers = this.loadWorkers();
+    }
+
+    loadWorkers() {
+      const workers = JSON.parse(localStorage.getItem('workers')) || [];
+      // Add default admin if no workers exist
+      if (workers.length === 0) {
+        workers.push({
+          id: 'admin-' + Date.now(),
+          name: 'المدير',
+          pass: 'admin123',
+          role: 'admin',
+          createdAt: new Date().toISOString()
+        });
+        this.saveWorkers(workers);
+      }
+      return workers;
+    }
+
+    saveWorkers(workers) {
+      localStorage.setItem('workers', JSON.stringify(workers));
+      this.workers = workers;
+    }
+
+    addWorker(name, password) {
+      if (!name || !password) {
+        return { success: false, message: 'من فضلك أدخل اسم الموظف وكلمة السر' };
+      }
+
+      if (name.length < 2) {
+        return { success: false, message: 'اسم الموظف يجب أن يكون أطول من حرفين' };
+      }
+
+      if (password.length < 4) {
+        return { success: false, message: 'كلمة السر يجب أن تكون 4 أحرف على الأقل' };
+      }
+
+      // Check if worker already exists
+      if (this.workers.find(w => w.name === name)) {
+        return { success: false, message: 'موظف بهذا الاسم موجود بالفعل' };
+      }
+
+      const newWorker = {
+        id: 'worker-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+        name: name.trim(),
+        pass: password,
+        role: 'cashier',
+        createdAt: new Date().toISOString()
+      };
+
+      this.workers.push(newWorker);
+      this.saveWorkers(this.workers);
+      
+      return { success: true, message: `تم إضافة الموظف "${name}" بنجاح` };
+    }
+
+    deleteWorker(workerId) {
+      const workerIndex = this.workers.findIndex(w => w.id === workerId);
+      if (workerIndex === -1) {
+        return { success: false, message: 'الموظف غير موجود' };
+      }
+
+      const worker = this.workers[workerIndex];
+      
+      // Prevent deleting admin
+      if (worker.role === 'admin' && this.workers.filter(w => w.role === 'admin').length === 1) {
+        return { success: false, message: 'لا يمكن حذف آخر مدير' };
+      }
+
+      this.workers.splice(workerIndex, 1);
+      this.saveWorkers(this.workers);
+      
+      return { success: true, message: `تم حذف الموظف "${worker.name}" بنجاح` };
+    }
+
+    renderWorkersList() {
+      const container = document.getElementById('workersList');
+      
+      if (this.workers.length === 0) {
+        container.innerHTML = `
+          <div class="empty-workers">
+            <div style="font-size: var(--font-size-2xl); margin-bottom: var(--space-2);">👥</div>
+            <div>لا توجد موظفين مسجلين</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = this.workers.map(worker => `
+        <div class="worker-item">
+          <div class="worker-info">
+            <h4>${this.escapeHtml(worker.name)} ${worker.role === 'admin' ? '👑' : '👤'}</h4>
+            <p>تاريخ الإنشاء: ${new Date(worker.createdAt).toLocaleDateString('ar-EG')}</p>
+            <p>الدور: ${worker.role === 'admin' ? 'مدير' : 'كاشير'}</p>
+          </div>
+          <div class="worker-actions">
+            ${worker.role !== 'admin' ? `
+              <button class="btn btn-danger btn-sm" onclick="deleteWorker('${worker.id}')" title="حذف الموظف">
+                🗑️ حذف
+              </button>
+            ` : `
+              <span style="color: var(--gray-400); font-size: var(--font-size-sm);">مدير النظام</span>
+            `}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  }
+
+  class EmployeeAuth {
+    constructor() {
+      this.currentEmployee = null;
+      this.init();
+    }
+
+    init() {
+      // Check if already logged in
+      const savedEmployee = localStorage.getItem('currentEmployee');
+      if (savedEmployee) {
+        this.currentEmployee = JSON.parse(savedEmployee);
+        this.showMainSystem();
+      }
+      
+      this.setupLoginEventListeners();
+    }
+
+    setupLoginEventListeners() {
+      const nameInput = document.getElementById('employeeName');
+      const passwordInput = document.getElementById('employeePassword');
+      
+      [nameInput, passwordInput].forEach(input => {
+        input.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            this.authenticateEmployee();
+          }
+        });
+      });
+    }
+
+    authenticateEmployee() {
+      const name = document.getElementById('employeeName').value.trim();
+      const password = document.getElementById('employeePassword').value.trim();
+      const errorDiv = document.getElementById('loginError');
+
+      if (!name || !password) {
+        this.showLoginError('من فضلك أدخل اسم الموظف وكلمة السر');
+        return;
+      }
+
+      // Get workers from localStorage
+      const workers = JSON.parse(localStorage.getItem('workers')) || [];
+      const employee = workers.find(w => w.name === name && w.pass === password);
+
+      if (employee) {
+        this.currentEmployee = {
+          id: employee.id,
+          name: employee.name,
+          role: employee.role,
+          loginTime: new Date().toLocaleString('ar-EG')
+        };
+        
+        localStorage.setItem('currentEmployee', JSON.stringify(this.currentEmployee));
+        this.showMainSystem();
+        this.playSuccessSound();
+      } else {
+        this.showLoginError('اسم المستخدم أو كلمة السر غير صحيحة');
+        this.playErrorSound();
+      }
+    }
+
+    showLoginError(message) {
+      const errorDiv = document.getElementById('loginError');
+      errorDiv.textContent = `❌ ${message}`;
+      errorDiv.style.display = 'block';
+      
+      // Clear inputs
+      document.getElementById('employeeName').value = '';
+      document.getElementById('employeePassword').value = '';
+      document.getElementById('employeeName').focus();
+      
+      // Hide error after 5 seconds
+      setTimeout(() => {
+        errorDiv.style.display = 'none';
+      }, 5000);
+    }
+
+    showMainSystem() {
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('mainSystem').classList.add('logged-in');
+      
+      // Update current employee display
+      if (this.currentEmployee) {
+        const roleIcon = this.currentEmployee.role === 'admin' ? '👑' : '👤';
+        document.getElementById('currentEmployee').innerHTML = `
+          ${roleIcon} ${this.currentEmployee.name}
+        `;
+      }
+      
+      // Initialize cashier system
+      if (typeof cashierSystem === 'undefined') {
+        window.cashierSystem = new CashierSystem();
+      }
+      
+      // Initialize barcode scanner
+      if (typeof barcodeScanner === 'undefined') {
+        window.barcodeScanner = new BarcodeScanner();
+      }
+
+      // Initialize worker manager
+      if (typeof workerManager === 'undefined') {
+        window.workerManager = new WorkerManager();
+      }
+    }
+
+    logout() {
+      if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+        this.currentEmployee = null;
+        localStorage.removeItem('currentEmployee');
+        
+        document.getElementById('loginOverlay').style.display = 'flex';
+        document.getElementById('mainSystem').classList.remove('logged-in');
+        
+        // Clear login form
+        document.getElementById('employeeName').value = '';
+        document.getElementById('employeePassword').value = '';
+        document.getElementById('employeeName').focus();
+        
+        // Clear any invoice data for security
+        if (window.cashierSystem) {
+          cashierSystem.invoice = [];
+          cashierSystem.renderInvoice();
+        }
+
+        // Stop scanner if running
+        if (window.barcodeScanner && barcodeScanner.isScanning) {
+          barcodeScanner.stopScanning();
+        }
+
+        // Close modals
+        document.getElementById('scannerModal').style.display = 'none';
+        document.getElementById('workerModal').style.display = 'none';
+      }
+    }
+
+    playSuccessSound() {
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.1);
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.2);
+      } catch (e) {
+        // Fallback: no sound if Web Audio API is not supported
+      }
+    }
+
+    playErrorSound() {
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+        oscillator.type = 'square';
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.3);
+      } catch (e) {
+        // Fallback: no sound if Web Audio API is not supported
+      }
+    }
+  }
+
+  class CashierSystem {
+    constructor() {
+      this.invoice = [];
+      this.init();
+    }
+
+    init() {
+      this.loadMarketInfo();
+      this.setupEventListeners();
+      this.renderInvoice();
+      this.initializeSampleProducts();
+      
+      // Focus on barcode input after a short delay to ensure DOM is ready
+      setTimeout(() => {
+        const barcodeInput = document.getElementById("barcodeInput");
+        if (barcodeInput) {
+          barcodeInput.focus();
+        }
+      }, 100);
+    }
+
+    initializeSampleProducts() {
+      // Add some sample products if none exist
+      const items = JSON.parse(localStorage.getItem("items")) || [];
+      if (items.length === 0) {
+        const sampleProducts = [
+          { barcode: "1234567890", name: "مياه معدنية 500مل", price: "5.00" },
+          { barcode: "2345678901", name: "عصير برتقال طبيعي", price: "12.50" },
+          { barcode: "3456789012", name: "خبز أبيض", price: "3.00" },
+          { barcode: "4567890123", name: "حليب كامل الدسم 1لتر", price: "18.00" },
+          { barcode: "5678901234", name: "شوكولاتة داكنة", price: "8.75" },
+          { barcode: "6789012345", name: "معجون أسنان", price: "25.00" },
+          { barcode: "7890123456", name: "صابون استحمام", price: "15.50" },
+          { barcode: "8901234567", name: "شامبو للشعر الجاف", price: "45.00" },
+          { barcode: "9012345678", name: "تفاح أحمر كيلو", price: "20.00" },
+          { barcode: "0123456789", name: "أرز أبيض 1كيلو", price: "35.00" }
+        ];
+        localStorage.setItem("items", JSON.stringify(sampleProducts));
+      }
+    }
+
+    loadMarketInfo() {
+      const name = localStorage.getItem("marketName") || "السوبر ماركت";
+      const logo = localStorage.getItem("marketLogo");
+      
+      document.getElementById("marketTitle").innerHTML = `<span>💳</span> ${name} - نظام الكاشير المطور`;
+      
+      if (logo) {
+        const logoEl = document.getElementById("logo");
+        logoEl.src = logo;
+        logoEl.style.display = "block";
+      }
+    }
+
+    setupEventListeners() {
+      const barcodeInput = document.getElementById("barcodeInput");
+      
+      if (barcodeInput) {
+        barcodeInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            this.addByBarcode();
+          }
+        });
+
+        // Auto-focus on barcode input when clicking anywhere
+        document.addEventListener('click', (e) => {
+          if (!e.target.closest('button') && 
+              !e.target.closest('input') && 
+              !e.target.closest('.login-overlay') &&
+              !e.target.closest('.scanner-modal') &&
+              !e.target.closest('.worker-modal')) {
+            barcodeInput.focus();
+          }
+        });
+      }
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+          switch(e.key) {
+            case 'p':
+              e.preventDefault();
+              this.printInvoice();
+              break;
+            case 'd':
+              e.preventDefault();
+              this.clearInvoice();
+              break;
+            case 's':
+              e.preventDefault();
+              if (window.barcodeScanner) {
+                startScanner();
+              }
+              break;
+          }
+        }
+        
+        if (e.key === 'Escape') {
+          // Close any open modals
+          document.getElementById('scannerModal').style.display = 'none';
+          document.getElementById('workerModal').style.display = 'none';
+          
+          if (barcodeInput) {
+            barcodeInput.focus();
+            barcodeInput.select();
+          }
+        }
+      });
+    }
+
+    addByBarcode() {
+      const barcodeInput = document.getElementById("barcodeInput");
+      if (!barcodeInput) return;
+      
+      const barcode = barcodeInput.value.trim();
+      if (!barcode) {
+        this.showMessage("من فضلك أدخل الباركود أولاً", "error");
+        return;
+      }
+
+      const items = JSON.parse(localStorage.getItem("items")) || [];
+      const item = items.find(i => i.barcode === barcode);
+
+      if (item) {
+        // Add item to invoice
+        this.invoice.push({
+          ...item,
+          id: Date.now() + Math.random(),
+          addedAt: new Date().toLocaleTimeString('ar-EG'),
+          addedBy: employeeAuth.currentEmployee ? employeeAuth.currentEmployee.name : 'غير معروف'
+        });
+        
+        this.renderInvoice();
+        this.showMessage(`تم إضافة "${item.name}" بنجاح`, "success");
+        this.playSuccessSound();
+      } else {
+        this.showMessage(`المنتج غير موجود: ${barcode}`, "error");
+        this.playErrorSound();
+      }
+
+      // Clear and refocus input
+      barcodeInput.value = "";
+      barcodeInput.focus();
+    }
+
+    renderInvoice() {
+      const tbody = document.getElementById("invoiceList");
+      const total = this.calculateTotal();
+      
+      if (this.invoice.length === 0) {
+        tbody.innerHTML = `
+          <tr class="empty-state">
+            <td colspan="4">
+              <div class="empty-state-icon">🛒</div>
+              <div>الفاتورة فارغة</div>
+              <div style="font-size: var(--font-size-sm); margin-top: var(--space-2);">ابدأ بمسح الباركود لإضافة المنتجات</div>
+            </td>
+          </tr>
+        `;
+      } else {
+        tbody.innerHTML = this.invoice.map((item, index) => `
+          <tr class="invoice-item">
+            <td><code>${this.escapeHtml(item.barcode)}</code></td>
+            <td><strong>${this.escapeHtml(item.name)}</strong></td>
+            <td><strong>${parseFloat(item.price).toFixed(2)} ج.م</strong></td>
+            <td>
+              <button class="btn btn-danger btn-sm" onclick="cashierSystem.deleteFromInvoice(${index})" title="حذف من الفاتورة">
+                <span>🗑️</span>
+                حذف
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      // Update totals and stats
+      document.getElementById("totalPrice").textContent = `${total.toFixed(2)} ج.م`;
+      document.getElementById("itemCount").textContent = this.invoice.length;
+      document.getElementById("totalAmount").textContent = total.toFixed(2);
+    }
+
+    calculateTotal() {
+      return this.invoice.reduce((sum, item) => sum + parseFloat(item.price), 0);
+    }
+
+    deleteFromInvoice(index) {
+      if (index < 0 || index >= this.invoice.length) return;
+      
+      const item = this.invoice[index];
+      if (confirm(`هل أنت متأكد من حذف "${item.name}" من الفاتورة؟`)) {
+        this.invoice.splice(index, 1);
+        this.renderInvoice();
+        this.showMessage(`تم حذف "${item.name}" من الفاتورة`, "success");
+        
+        const barcodeInput = document.getElementById("barcodeInput");
+        if (barcodeInput) barcodeInput.focus();
+      }
+    }
+
+    clearInvoice() {
+      if (this.invoice.length === 0) {
+        this.showMessage("الفاتورة فارغة بالفعل", "error");
+        return;
+      }
+      
+      if (confirm("هل أنت متأكد من مسح جميع العناصر من الفاتورة؟")) {
+        this.invoice = [];
+        this.renderInvoice();
+        this.showMessage("تم مسح الفاتورة بالكامل", "success");
+        
+        const barcodeInput = document.getElementById("barcodeInput");
+        if (barcodeInput) barcodeInput.focus();
+      }
+    }
+
+    printInvoice() {
+      if (this.invoice.length === 0) {
+        this.showMessage("لا يمكن طباعة فاتورة فارغة", "error");
+        return;
+      }
+
+      const marketName = document.getElementById("marketTitle").textContent.replace('💳', '').replace('- نظام الكاشير المطور', '').trim();
+      const currentDate = new Date().toLocaleDateString('ar-EG');
+      const currentTime = new Date().toLocaleTimeString('ar-EG');
+      const total = this.calculateTotal();
+      const employeeName = employeeAuth.currentEmployee ? employeeAuth.currentEmployee.name : 'غير معروف';
+
+      let printContent = `
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+        <head>
+          <meta charset="UTF-8">
+          <title>فاتورة - ${marketName}</title>
+          <style>
+            body {
+              font-family: 'Cairo', Arial, sans-serif;
+              margin: 0;
+              padding: 20px;
+              background: white;
+              color: black;
+              font-size: 14px;
+            }
+            .invoice-header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 2px solid #333;
+              padding-bottom: 20px;
+            }
+            .market-name {
+              font-size: 24px;
+              font-weight: bold;
+              margin-bottom: 10px;
+            }
+            .invoice-info {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 20px;
+              font-size: 12px;
+            }
+            .employee-info {
+              text-align: center;
+              margin-bottom: 15px;
+              font-size: 12px;
+              color: #666;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 20px;
+            }
+            th, td {
+              padding: 10px;
+              text-align: center;
+              border-bottom: 1px solid #ddd;
+            }
+            th {
+              background-color: #f5f5f5;
+              font-weight: bold;
+              border-bottom: 2px solid #333;
+            }
+            .total-section {
+              text-align: center;
+              font-size: 18px;
+              font-weight: bold;
+              margin-top: 20px;
+              padding: 15px;
+              background-color: #f9f9f9;
+              border: 2px solid #333;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 30px;
+              font-size: 12px;
+              color: #666;
+            }
+            @media print {
+              body { margin: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-header">
+            <div class="market-name">${marketName}</div>
+            <div>فاتورة مبيعات</div>
+          </div>
+          
+          <div class="invoice-info">
+            <div><strong>التاريخ:</strong> ${currentDate}</div>
+            <div><strong>الوقت:</strong> ${currentTime}</div>
+            <div><strong>رقم الفاتورة:</strong> ${Date.now()}</div>
+          </div>
+
+          <div class="employee-info">
+            <strong>الموظف:</strong> ${employeeName}
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>الباركود</th>
+                <th>اسم المنتج</th>
+                <th>السعر</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+
+      this.invoice.forEach(item => {
+        printContent += `
+          <tr>
+            <td>${this.escapeHtml(item.barcode)}</td>
+            <td>${this.escapeHtml(item.name)}</td>
+            <td>${parseFloat(item.price).toFixed(2)} ج.م</td>
+          </tr>
+        `;
+      });
+
+      printContent += `
+            </tbody>
+          </table>
+
+          <div class="total-section">
+            <div>عدد المنتجات: ${this.invoice.length}</div>
+            <div style="margin-top: 10px; font-size: 20px;">
+              <strong>إجمالي المبلغ: ${total.toFixed(2)} ج.م</strong>
+            </div>
+          </div>
+
+          <div class="footer">
+            <div>شكراً لك على تسوقك معنا</div>
+            <div>تم إنشاء هذه الفاتورة بواسطة نظام ${marketName}</div>
+            <div>الموظف: ${employeeName}</div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const printWindow = window.open("", "_blank", "width=800,height=600");
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      
+      printWindow.onload = function() {
+        printWindow.focus();
+        printWindow.print();
+      };
+
+      this.showMessage("تم فتح نافذة الطباعة", "success");
+    }
+
+    showMessage(message, type = 'info') {
+      // Remove existing messages
+      const existingMessages = document.querySelectorAll('.message');
+      existingMessages.forEach(msg => msg.remove());
+
+      const messageEl = document.createElement('div');
+      messageEl.className = `message message-${type}`;
+      
+      const icon = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+      };
+
+      messageEl.innerHTML = `
+        <span>${icon[type]}</span>
+        <span>${message}</span>
+      `;
+
+      const container = document.querySelector('.barcode-section');
+      if (container) {
+        container.insertBefore(messageEl, container.firstChild);
+
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+          messageEl.remove();
+        }, 3000);
+      }
+    }
+
+    playSuccessSound() {
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.1);
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.2);
+      } catch (e) {
+        // Fallback: no sound if Web Audio API is not supported
+      }
+    }
+
+    playErrorSound() {
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+        oscillator.type = 'square';
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.3);
+      } catch (e) {
+        // Fallback: no sound if Web Audio API is not supported
+      }
+    }
+
+    escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  }
+
+  // Initialize the authentication system
+  const employeeAuth = new EmployeeAuth();
+
+  // Global functions for onclick handlers
+  function authenticateEmployee() {
+    employeeAuth.authenticateEmployee();
+  }
+
+  function logout() {
+    employeeAuth.logout();
+  }
+
+  function addByBarcode() {
+    if (window.cashierSystem) {
+      cashierSystem.addByBarcode();
+    }
+  }
+
+  function deleteFromInvoice(index) {
+    if (window.cashierSystem) {
+      cashierSystem.deleteFromInvoice(index);
+    }
+  }
+
+  function clearInvoice() {
+    if (window.cashierSystem) {
+      cashierSystem.clearInvoice();
+    }
+  }
+
+  function printInvoice() {
+    if (window.cashierSystem) {
+      cashierSystem.printInvoice();
+    }
+  }
+
+  // Scanner functions
+  function startScanner() {
+    if (window.barcodeScanner) {
+      barcodeScanner.startScanning();
+    }
+  }
+
+  function stopScanner() {
+    if (window.barcodeScanner) {
+      barcodeScanner.stopScanning();
+    }
+  }
+
+  // Worker management functions
+  function openWorkerModal() {
+    document.getElementById('workerModal').style.display = 'flex';
+    if (window.workerManager) {
+      workerManager.renderWorkersList();
+    }
+  }
+
+  function closeWorkerModal() {
+    document.getElementById('workerModal').style.display = 'none';
+  }
+
+  function addWorker() {
+    const name = document.getElementById('workerName').value.trim();
+    const password = document.getElementById('workerPassword').value.trim();
+    
+    if (window.workerManager) {
+      const result = workerManager.addWorker(name, password);
+      
+      if (result.success) {
+        document.getElementById('workerName').value = '';
+        document.getElementById('workerPassword').value = '';
+        workerManager.renderWorkersList();
+        
+        if (window.cashierSystem) {
+          cashierSystem.showMessage(result.message, 'success');
+        }
+      } else {
+        if (window.cashierSystem) {
+          cashierSystem.showMessage(result.message, 'error');
+        }
+      }
+    }
+  }
+
+  function deleteWorker(workerId) {
+    if (window.workerManager) {
+      const result = workerManager.deleteWorker(workerId);
+      
+      if (result.success) {
+        workerManager.renderWorkersList();
+        
+        if (window.cashierSystem) {
+          cashierSystem.showMessage(result.message, 'success');
+        }
+      } else {
+        if (window.cashierSystem) {
+          cashierSystem.showMessage(result.message, 'error');
+        }
+      }
+    }
+  }
+
+  // Navigation functions
+  function manageProducts() {
+    alert('صفحة إدارة المنتجات ستكون متاحة قريباً');
+  }
+
+  function showSettings() {
+    alert('صفحة الإعدادات ستكون متاحة قريباً');
+  }
+
+  function goHome() {
+    if (confirm('هل تريد العودة للصفحة الرئيسية؟')) {
+      window.location.href = 'index.html';
+    }
+  }
+
+  // Add keyboard shortcuts info
+  console.log('🚀 نظام الكاشير المطور مع مسح الباركود وإدارة العمال');
+  console.log('الميزات الجديدة:');
+  console.log('📱 مسح الباركود بالكاميرا');
+  console.log('👥 إدارة العمال (إضافة/حذف)');
+  console.log('🔐 نظام تسجيل الدخول المحسن');
+  console.log('');
+  console.log('اختصارات لوحة المفاتيح:');
+  console.log('Enter: تسجيل الدخول أو إضافة منتج');
+  console.log('Ctrl+P: طباعة الفاتورة');
+  console.log('Ctrl+D: مسح الفاتورة');
+  console.log('Ctrl+S: فتح ماسح الباركود');
+  console.log('ESC: إغلاق النوافذ والتركيز على خانة الباركود');
+</script>
+
+</body>
+</html>
